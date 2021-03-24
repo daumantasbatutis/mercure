@@ -34,6 +34,7 @@ type Subscriber struct {
 	live                updateSource
 	logger              Logger
 	topicSelectorStore  *TopicSelectorStore
+	historySent         bool
 }
 
 // NewSubscriber creates a new subscriber.
@@ -52,10 +53,12 @@ func NewSubscriber(lastEventID string, logger Logger, tss *TopicSelectorStore) *
 		disconnected:       make(chan struct{}),
 		logger:             logger,
 		topicSelectorStore: tss,
+		historySent:        true,
 	}
 
 	if lastEventID != "" {
 		s.history.in = make(chan *Update)
+		s.historySent = false
 	}
 
 	return s
@@ -179,7 +182,7 @@ func (s *Subscriber) Disconnect() {
 
 // CanDispatch checks if an update can be dispatched to this subsriber.
 func (s *Subscriber) CanDispatch(u *Update) bool {
-	if !canReceive(s.topicSelectorStore, u.Topics, s.Topics) {
+	if !askedToReceive(u.Topics, s.Topics) {
 		s.logger.Debug("Subscriber has not subscribed to this update", zap.Object("subscriber", s), zap.Object("update", u))
 
 		return false

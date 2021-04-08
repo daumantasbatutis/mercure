@@ -13,6 +13,12 @@ linters:
     - exhaustivestruct
     - paralleltest
     - cyclop
+    - forcetypeassert
+
+    # deprecated
+    - interfacer
+    - maligned
+    - scopelint
 
 issues:
   exclude-rules:
@@ -22,3 +28,4 @@ issues:
         - funlen
         - godox
         - noctx
+        - wrapcheck

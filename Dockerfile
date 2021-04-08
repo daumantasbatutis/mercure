@@ -1,9 +1,7 @@
 FROM caddy:2-alpine
 
-ENV MERCURE_TRANSPORT_URL=bolt:///data/mercure.db
-
 COPY mercure /usr/bin/caddy
-COPY Caddyfile /etc/caddy/Caddyfile
-COPY Caddyfile.dev /etc/caddy/Caddyfile.dev
-COPY Caddyfile.test /etc/caddy/Caddyfile.test
+COPY CaddyConfig.json /etc/caddy/CaddyConfig.json
 COPY public public/
+RUN mkdir /var/log/caddy
+RUN chmod -R 755 /var/log/caddy

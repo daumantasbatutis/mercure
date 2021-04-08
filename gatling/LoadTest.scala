@@ -12,8 +12,9 @@
   *   - PUBLISHERS_RATE_FROM: minimum rate (per second) of publications
   *   - PUBLISHERS_RATE_TO: maximum rate (per second) of publications
   *   - INJECTION_DURATION: duration of the publishers injection
-  *   - CONNECTION_DURATION: duration of subscribers' connection
-  *   - RANDOM_CONNECTION_DURATION: to randomize the connection duration (will longs CONNECTION_DURATION at max)
+  *   - CONNECTION_DURATION_FROM: min duration of subscribers' connection
+  *   - CONNECTION_DURATION_TO: max duration of subscribers' connection
+  *   - SUBSCRIBERS_WITH_HISTORY_PERCENT: how many percent of subscribers will ask for history
   */
 
 package mercure
@@ -27,26 +28,28 @@ class LoadTest extends Simulation {
 
   /** The hub URL */
   val HubUrl =
-    Properties.envOrElse("HUB_URL", "https://localhost/.well-known/mercure")
+    Properties.envOrElse("HUB_URL", "http://localhost:9080/.well-known/mercure")
 
   /** JWT to use to publish */
   val Jwt = Properties.envOrElse(
     "JWT",
-    "eyJhbGciOiJIUzI1NiJ9.eyJtZXJjdXJlIjp7InB1Ymxpc2giOlsiKiJdLCJzdWJzY3JpYmUiOlsiaHR0cHM6Ly9leGFtcGxlLmNvbS97aWR9Iiwie3NjaGVtZX06Ly97K2hvc3R9L2RlbW8vYm9va3Mve2lkfS5qc29ubGQiLCIvLndlbGwta25vd24vbWVyY3VyZS9zdWJzY3JpcHRpb25zey90b3BpY317L3N1YnNjcmliZXJ9Il0sInBheWxvYWQiOnsidXNlciI6Imh0dHBzOi8vZXhhbXBsZS5jb20vdXNlcnMvZHVuZ2xhcyIsInJlbW90ZUFkZHIiOiIxMjcuMC4wLjEifX19.eZ04WtIriWpOTolGAKUfAUrrxW0Vak1jnvsJEjAFz9I"
+    "eyJhbGciOiJIUzI1NiJ9.eyJtZXJjdXJlIjp7InB1Ymxpc2giOlsiKiJdLCJzdWJzY3JpYmUiOlsiKiJdfX0.Ws4gtnaPtM-R2-z9DnH-laFu5lDZrMnmyTpfU8uKyQo"
   )
 
   /** JWT to use to subscribe, fallbacks to JWT if not set and PRIVATE_UPDATES set */
-  val SubscriberJwt = Properties.envOrElse("SUBSCRIBER_JWT", null)
+  val SubscriberJwt = Properties.envOrElse("SUBSCRIBER_JWT", "eyJhbGciOiJIUzI1NiJ9.eyJtZXJjdXJlIjp7InB1Ymxpc2giOlsiKiJdLCJzdWJzY3JpYmUiOlsiKiJdfX0.Ws4gtnaPtM-R2-z9DnH-laFu5lDZrMnmyTpfU8uKyQo")
 
   /** Number of concurrent subscribers initially connected */
   val InitialSubscribers =
-    Properties.envOrElse("INITIAL_SUBSCRIBERS", "100").toInt
+    Properties.envOrElse("INITIAL_SUBSCRIBERS", "10000").toInt
 
   /** Additional subscribers rate (per second) */
   val SubscribersRateFrom =
-    Properties.envOrElse("SUBSCRIBERS_RATE_FROM", "2").toInt
+    Properties.envOrElse("SUBSCRIBERS_RATE_FROM", "200").toInt
   val SubscribersRateTo =
-    Properties.envOrElse("SUBSCRIBERS_RATE_TO", "10").toInt
+    Properties.envOrElse("SUBSCRIBERS_RATE_TO", "500").toInt
+  val SubscribersWithHistoryPercent =
+    Properties.envOrElse("SUBSCRIBERS_WITH_HISTORY_PERCENT", "15").toInt
 
   /** Publishers rate (per second) */
   val PublishersRateFrom =
@@ -58,12 +61,11 @@ class LoadTest extends Simulation {
     Properties.envOrElse("INJECTION_DURATION", "3600").toInt
 
   /** How long a subscriber can stay connected at max (in seconds) */
-  val ConnectionDuration =
-    Properties.envOrElse("CONNECTION_DURATION", "300").toInt
+  val ConnectionDurationFrom =
+    Properties.envOrElse("CONNECTION_DURATION", "10").toInt
+  val ConnectionDurationTo =
+    Properties.envOrElse("CONNECTION_DURATION", "60").toInt
 
-  /** Randomize the connection duration? */
-  val RandomConnectionDuration =
-    Properties.envOrElse("RANDOM_CONNECTION_DURATION", "true").toBoolean
 
   /** Send private updates with random topics instead of public ones always with the same topic */
   var PrivateUpdates =
@@ -71,14 +73,24 @@ class LoadTest extends Simulation {
 
   val rnd = new scala.util.Random
 
-  /** Subscriber test as a function to handle conditional Authorization header */
-  def subscriberTest() = {
-    var topic = "https://example.com"
+  def getSubscriberRequestUrl() : String = {
+    var topic = "https://example.com/my-private-topic"
     if (PrivateUpdates) {
       topic = topic + "/{id}"
     }
 
-    var requestBuilder = sse("Subscribe").connect("?topic=" + topic)
+    var requestQuery = "?topic=" + topic
+
+    if (rnd.nextInt(100) < SubscribersWithHistoryPercent) {
+      requestQuery = requestQuery + "&Last-Event-ID=earliest"
+    }
+
+    return requestQuery
+  }
+
+  /** Subscriber test as a function to handle conditional Authorization header */
+  def subscriberTest() = {
+    var requestBuilder = sse("Subscribe").connect(session => getSubscriberRequestUrl())
 
     if (SubscriberJwt != null) {
       requestBuilder =
@@ -95,7 +107,7 @@ class LoadTest extends Simulation {
   val httpProtocol = http
     .baseUrl(HubUrl)
 
-  var topic = "https://example.com"
+  var topic = "https://example.com/my-private-topic"
   if (PrivateUpdates) {
     topic = topic + "/" + rnd.nextInt()
   }
@@ -119,8 +131,7 @@ class LoadTest extends Simulation {
       subscriberTest()
     )
     .pause(
-      if (RandomConnectionDuration) rnd.nextInt(ConnectionDuration)
-      else ConnectionDuration
+      ConnectionDurationFrom, ConnectionDurationTo
     )
     .exec(sse("Close").close)
 
@@ -137,7 +148,7 @@ class LoadTest extends Simulation {
       .inject(
         rampUsersPerSec(
           PublishersRateFrom
-        ) to PublishersRateTo during (InjectionDuration + ConnectionDuration seconds) randomized
+        ) to PublishersRateTo during (InjectionDuration + ConnectionDurationTo seconds) randomized
       )
       .protocols(httpProtocol)
   )

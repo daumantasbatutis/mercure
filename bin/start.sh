@@ -1,45 +1,60 @@
 #!/bin/bash
 
-TRANSPORT=$1
-
-if [ -z "$TRANSPORT" ]
+if [ ! -f ".env" ]
 then
-  echo "Which transport to use (redis-cluster/bolt):"
-  read
+    echo "------------------------------------------------------------"
+    echo "| Creating .env file                                       |"
+    echo "------------------------------------------------------------"
+    cp .env.dist .env
 fi
 
-case $2 in
-  prod)
-    export MERCURE_CADDY_FILE="Caddyfile"
-    ;;
-  test)
-    export MERCURE_CADDY_FILE="Caddyfile.test"
-    ;;
-  *)
-    export MERCURE_CADDY_FILE="Caddyfile.dev"
-esac
-
-case $TRANSPORT in
-  bolt)
-    export MERCURE_TRANSPORT_URL="bolt://mercure.db"
-    ;;
-  redis-cluster)
-    export MERCURE_TRANSPORT_URL="redis://mercure-transport-1:6379,mercure-transport-2:6379,mercure-transport-3:6379/0?stream_count=20"
-    ;;
-  *)
-    echo "Transport $TRANSPORT not supported!"
-    exit 1
-esac
-
-docker network create mercure_hub --driver bridge
-
+echo ""
+echo "------------------------------------------------------------"
+echo "| Stopping mercure-hub                                     |"
+echo "------------------------------------------------------------"
 bin/stop.sh
 
+echo ""
+echo "------------------------------------------------------------"
+echo "| Creating mercure_hub network                             |"
+echo "------------------------------------------------------------"
+docker network create mercure_hub --driver bridge
+
+echo ""
+echo "------------------------------------------------------------"
+echo "| Compiling mercure-hub                                    |"
+echo "------------------------------------------------------------"
 bin/compile.sh
 
-if test -f "bin/transport-$TRANSPORT-start.sh"
-then
-    bin/transport-$TRANSPORT-start.sh
+echo ""
+echo "------------------------------------------------------------"
+echo "| Building Kinesis container                               |"
+echo "------------------------------------------------------------"
+bin/transport-kinesis-start.sh
+
+echo ""
+echo "------------------------------------------------------------"
+echo "| Building mercure-hub container                           |"
+echo "------------------------------------------------------------"
+bin/hub-start.sh
+
+if [ "$2" ]
+    then
+    echo ""
+    echo "------------------------------------------------------------"
+    echo "| Connecting mercure-hub to network                        |"
+    echo "------------------------------------------------------------"
+    docker network connect $2 mercure-hub
 fi
 
-bin/hub-start.sh
+echo ""
+echo "------------------------------------------------------------"
+echo "| Finished                                                 |"
+echo "------------------------------------------------------------"
+echo ""
+echo "Stop and destroy mercure-hub:"
+echo "./bin/stop.sh"
+echo ""
+echo "Dump current output to file:"
+echo "docker logs mercure-hub >& mercure-hub.log"
+echo ""

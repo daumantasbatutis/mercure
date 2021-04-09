@@ -75,8 +75,7 @@
                           "subscriber_jwt": {
                             "alg": "{env.MERCURE_SUBSCRIBER_JWT_ALG}",
                             "key": "{env.MERCURE_SUBSCRIBER_JWT_KEY}"
-                          },
-                          "transport_url": "kinesis://mercure-transport:4567"
+                          }
                         }
                       ]
                     },

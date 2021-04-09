@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker build -t mercure-hub ./
+docker build -f Dockerfile.dev -t mercure-hub ./
 
 docker run \
     --name mercure-hub \

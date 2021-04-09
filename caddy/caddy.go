@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -113,6 +114,7 @@ func (m *Mercure) Provision(ctx caddy.Context) error { //nolint:funlen
 	if m.PublisherJWT.Alg == "" {
 		m.PublisherJWT.Alg = "HS256"
 	}
+	m.TransportURL = os.Getenv("MERCURE_TRANSPORT_URL")
 	if m.TransportURL == "" {
 		m.TransportURL = "bolt://mercure.db"
 	}

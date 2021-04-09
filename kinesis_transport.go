@@ -91,7 +91,7 @@ func NewKinesisTransport(u *url.URL, l Logger, tss *TopicSelectorStore) (Transpo
 	transport := &KinesisTransport{
 		logger:                    l,
 		client:                    client,
-		streamName:                "mercure_updates",
+		streamName:                os.Getenv("KINESIS_STREAM_NAME"),
 		subscribers:               make(map[*Subscriber]struct{}),
 		historySubscribers:        make(map[*Subscriber]struct{}),
 		closed:                    make(chan struct{}),

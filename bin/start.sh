@@ -22,12 +22,6 @@ docker network create mercure_hub --driver bridge
 
 echo ""
 echo "------------------------------------------------------------"
-echo "| Compiling mercure-hub                                    |"
-echo "------------------------------------------------------------"
-bin/compile.sh
-
-echo ""
-echo "------------------------------------------------------------"
 echo "| Building Kinesis container                               |"
 echo "------------------------------------------------------------"
 bin/transport-kinesis-start.sh

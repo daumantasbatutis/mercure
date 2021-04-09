@@ -11,3 +11,5 @@ dist
 /spec/mercure.xml
 /log/
 /.env
+/mercure
+/xcaddy

@@ -41,13 +41,13 @@ class LoadTest extends Simulation {
 
   /** Number of concurrent subscribers initially connected */
   val InitialSubscribers =
-    Properties.envOrElse("INITIAL_SUBSCRIBERS", "10000").toInt
+    Properties.envOrElse("INITIAL_SUBSCRIBERS", "100").toInt
 
   /** Additional subscribers rate (per second) */
   val SubscribersRateFrom =
-    Properties.envOrElse("SUBSCRIBERS_RATE_FROM", "200").toInt
+    Properties.envOrElse("SUBSCRIBERS_RATE_FROM", "2").toInt
   val SubscribersRateTo =
-    Properties.envOrElse("SUBSCRIBERS_RATE_TO", "500").toInt
+    Properties.envOrElse("SUBSCRIBERS_RATE_TO", "20").toInt
   val SubscribersWithHistoryPercent =
     Properties.envOrElse("SUBSCRIBERS_WITH_HISTORY_PERCENT", "15").toInt
 

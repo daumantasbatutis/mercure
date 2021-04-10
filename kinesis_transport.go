@@ -310,7 +310,7 @@ func (t *KinesisTransport) ConsumeHistorySubscribers() {
 			return
 		default:
 			if len(t.historySubscribers) == 0 {
-				time.Sleep(time.Millisecond * 100)
+				time.Sleep(time.Millisecond * 1100)
 				continue
 			}
 			t.dispatchHistory(t.GetHistorySubscribers(), t.StringToTime(t.lastEventID))
@@ -351,6 +351,7 @@ func (t *KinesisTransport) ConsumeShard(shardID *string, historySubscribers []*S
 		default:
 			recordsOutput, err := t.client.GetRecords(t.context, &kinesis.GetRecordsInput{
 				ShardIterator: currentIterator,
+				Limit: aws.Int32(1000),
 			})
 			if err != nil {
 				t.logger.Error("Failed getting records", zap.Error(err))
@@ -412,7 +413,7 @@ func (t *KinesisTransport) ConsumeShard(shardID *string, historySubscribers []*S
 					// History is sent; no need to consume any more
 					return lastEventId
 				}
-				time.Sleep(time.Millisecond * 100)
+				time.Sleep(time.Millisecond * 1100)
 			}
 		}
 	}

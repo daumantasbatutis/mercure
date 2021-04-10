@@ -20,5 +20,3 @@ RUN rm -rf /root/.cache/go-build
 
 COPY CaddyConfigDev.json /etc/caddy/CaddyConfig.json
 COPY public public/
-RUN mkdir /var/log/caddy
-RUN chmod -R 755 /var/log/caddy

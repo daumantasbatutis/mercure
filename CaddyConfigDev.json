@@ -2,20 +2,7 @@
   "logging": {
     "logs": {
       "default": {
-        "exclude": [
-          "http.log.access.log0",
-          "http.handlers.mercure"
-        ]
-      },
-      "error": {
-        "writer": {
-          "filename": "/var/log/caddy/error.log",
-          "output": "file"
-        },
-        "level": "WARN",
-        "include": [
-          "http.handlers.mercure"
-        ]
+        "level": "WARN"
       }
     }
   },
